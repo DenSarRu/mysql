@@ -1,0 +1,25 @@
+-- Создам представление для проверки количества проблем в работе
+-- Это проблемы со статусами "назначено", "в работе", "план"
+
+CREATE VIEW problem_in_work (problems, problem_status) AS
+	SELECT DISTINCT 
+    	ps.name AS problem_status,
+    	count(p.id) over(partition by ps.id) AS total
+  	FROM problems p
+      JOIN problems_statuses ps 
+        ON p.problem_status_id = ps.id
+  	WHERE ps.id IN (1, 2, 3); 
+
+SELECT * FROM problem_in_work;
+
+-- Создам представление для проверки просроченных проблем
+
+CREATE VIEW expired_problem AS
+	SELECT 
+		p.id,
+		p.scheduled_at, 
+		DATEDIFF(current_date(), p.scheduled_at) AS days_left
+  	FROM problems p
+  	WHERE p.scheduled_at < current_date() AND p.problem_status_id NOT IN (4, 5);
+
+SELECT * FROM expired_problem;

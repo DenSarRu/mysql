@@ -1,0 +1,53 @@
+-- –абота с запросами
+
+-- Ќайду 10 пользователей, которые разместитли больше всего проблем
+SELECT
+  user_id,
+  COUNT(*) AS total_created_problems 
+  FROM problems p
+  GROUP BY user_id
+  ORDER BY total_created_problems DESC
+  LIMIT 10;
+
+-- дополню вывод информации данными пользовател€
+SELECT
+  CONCAT(u.first_name, ' ', u.last_name)AS user, 
+  COUNT(*) AS total_created_problems 
+  FROM problems p
+  JOIN users u 
+    ON u.id = p.user_id 
+  GROUP BY user_id
+  ORDER BY total_created_problems DESC
+  LIMIT 10;
+
+-- ѕосмотрю, каких типов проблем больше всего
+SELECT
+  pt.name,
+  COUNT(*) AS total 
+  FROM problems p
+    JOIN problems_types pt 
+      ON pt.id = p.problem_type_id 
+  GROUP BY problem_type_id
+  ORDER BY total DESC;
+ 
+-- “о же самое через вложенный запрос
+SELECT
+    (SELECT pt.name FROM problems_types pt WHERE pt.id = p.problem_type_id) AS name,
+    COUNT(*) AS total
+  FROM problems p 
+  GROUP BY p.problem_type_id 
+  ORDER BY total DESC;
+
+-- ѕровер€ю. ѕроблем со статусом "2" создано 110, и это действительно проблема с брошенной машиной.
+SELECT *
+FROM problems p 
+WHERE p.problem_type_id = 2;
+  
+SELECT name FROM problems_types pt WHERE id = 2;
+ 
+SELECT
+  CONCAT('—ама€ перва€ проблема была создана ', DATEDIFF(current_date(), DATE(MIN(created_at))), ' дней назад') AS age,
+  CONCAT('«а это врем€ получено сообщений: ', COUNT(*)) AS total_problems,
+  CONCAT('¬з€то в работу проблем: ', (SELECT COUNT(*) FROM problems p WHERE p.problem_status_id != 5)) AS problems_in_work,
+  CONCAT((SELECT COUNT(*) FROM problems p WHERE p.problem_status_id = 5), ' проблем не соответствовали правилам и тематике или дублировались.') AS problem_delited
+  FROM problems p;

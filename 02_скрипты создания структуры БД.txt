@@ -1,0 +1,152 @@
+-- Создаём БД
+CREATE DATABASE smart_city;
+
+USE smart_city;
+
+-- Создаём таблицу пользователей
+CREATE TABLE users (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки", 
+  first_name VARCHAR(100) NOT NULL COMMENT "Имя пользователя",
+  last_name VARCHAR(100) NOT NULL COMMENT "Фамилия пользователя",
+  email VARCHAR(100) NOT NULL UNIQUE COMMENT "Почта",
+  phone VARCHAR(100) NOT NULL UNIQUE COMMENT "Телефон",
+  address VARCHAR(100) COMMENT "Адрес",
+  user_status_id INT UNSIGNED NOT NULL COMMENT "Ссылка на статус пользователя",
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT "Время создания строки",  
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT "Время обновления строки"
+) COMMENT "Пользователи";  
+
+-- Создаём таблицу организаций
+CREATE TABLE organizations (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки", 
+  name VARCHAR(100) NOT NULL COMMENT "Название организации",
+  address VARCHAR(100) NOT NULL COMMENT "Адрес",
+  description VARCHAR(255) COMMENT "Описание и общая информация по желанию",
+  email VARCHAR(100) NOT NULL UNIQUE COMMENT "Почта",
+  phone VARCHAR(100) NOT NULL UNIQUE COMMENT "Телефон",
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT "Время создания строки",  
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT "Время обновления строки"
+) COMMENT "Организации";  
+
+-- Создаём таблицу Проблемы
+CREATE TABLE problems (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки",
+  problem_type_id INT UNSIGNED NOT NULL COMMENT "Ссылка на тип проблемы",
+  address VARCHAR(100) NOT NULL COMMENT "Адрес проблемы",
+  description VARCHAR(255) NOT NULL COMMENT "Описание проблемы",
+  user_id INT UNSIGNED NOT NULL COMMENT "Ссылка на пользователя-создателя записи",
+  filename VARCHAR(255) NOT NULL COMMENT "Путь к файлу",
+  problem_status_id INT UNSIGNED NOT NULL DEFAULT 6 COMMENT "Ссылка на текущий статус проблемы", 
+  responsible_person_id INT UNSIGNED NOT NULL COMMENT "Ссылка на пользователя, ответственного за решение проблемы", 
+  scheduled_at DATE DEFAULT (CURRENT_DATE + INTERVAL 3 DAY) COMMENT "Планируемая дата решения проблемы",
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT "Время создания строки",  
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT "Время обновления строки"
+) COMMENT "Проблемы"; 
+
+-- Создаём таблицу ДТП
+CREATE TABLE traffic_accident (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки",
+  address VARCHAR(100) NOT NULL COMMENT "Адрес места ДТП",
+  description VARCHAR(255) NOT NULL COMMENT "Описание",
+  is_traffic_blocked BOOLEAN COMMENT "Признак блокировки движения",
+  filename VARCHAR(255) COMMENT "Путь к файлу",
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT "Время создания строки",  
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT "Время обновления строки"
+) COMMENT "ДТП";
+
+-- Создаем таблицу Земляные работы
+CREATE TABLE earthworks (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки", 
+  organization_executor_id INT UNSIGNED NOT NULL COMMENT "Ссылка на организацию, выполняющую работы",
+  address VARCHAR(100) NOT NULL COMMENT "Адрес выполнения работ",
+  description VARCHAR(255) NOT NULL COMMENT "Описание", 
+  start_date DATE DEFAULT (CURRENT_DATE) COMMENT "Дата начала выполнения работ",
+  end_date DATE COMMENT "Планируемая дата решения проблемы",
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT "Время создания строки",  
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT "Время обновления строки"
+) COMMENT "Земляные работы";
+
+-- Создаем таблицу Метеообстановка 
+CREATE TABLE weather_data (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки", 
+  day_of_measurement DATE DEFAULT (CURRENT_DATE) COMMENT "Дата",
+  time_of_measurement TIME DEFAULT (CURRENT_TIME) COMMENT "Время",
+  air_temperature DECIMAL(3,1) NOT NULL COMMENT "температура воздуха", 
+  atmospheric_pressure INT UNSIGNED NOT NULL COMMENT "Атмосферное давление",
+  humidity INT UNSIGNED NOT NULL COMMENT "Влажность воздуха",
+  wind_speed DECIMAL(4,1) NOT NULL  COMMENT "Скорость ветра", 
+  wind_direction_id INT UNSIGNED NOT NULL COMMENT "Ссылка на направление ветра",
+  radiation INT UNSIGNED NOT NULL COMMENT "Уровень радиации",
+  water_level INT UNSIGNED NOT NULL COMMENT "Уровень воды",
+  light_level INT UNSIGNED NOT NULL COMMENT "Уровень освещенности"
+) COMMENT "Метеоданные";
+
+-- Создаем таблицу направления ветра
+CREATE TABLE wind_direction (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки",
+  direction VARCHAR(100) NOT NULL COMMENT "Направление ветра"
+) COMMENT "Роза ветров";
+
+-- Создаем таблицу Статусов пользователя
+CREATE TABLE user_statuses (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки",
+  name VARCHAR(150) NOT NULL UNIQUE COMMENT "Название статуса",
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT "Время создания строки",  
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT "Время обновления строки"  
+) COMMENT "Статусы пользователей";
+
+-- Создаем таблицу Статусов проблем
+CREATE TABLE problems_statuses (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки",
+  name VARCHAR(150) NOT NULL UNIQUE COMMENT "Название статуса",
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT "Время создания строки",  
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT "Время обновления строки"  
+) COMMENT "Статусы проблем";
+
+
+-- Создаем таблицу Типов проблем
+CREATE TABLE problems_types (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки",
+  name VARCHAR(150) NOT NULL UNIQUE COMMENT "Название статуса",
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT "Время создания строки",  
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT "Время обновления строки"  
+) COMMENT "Типы проблем";
+
+
+
+
+-- после анализа БД и работы с ней 
+-- доработал создание таблицы проблем
+
+CREATE TABLE problems (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки",
+  problem_type_id INT UNSIGNED NOT NULL COMMENT "Ссылка на тип проблемы",
+  address VARCHAR(100) NOT NULL COMMENT "Адрес проблемы",
+  description VARCHAR(255) NOT NULL COMMENT "Описание проблемы",
+  user_id INT UNSIGNED NOT NULL COMMENT "Ссылка на пользователя-создателя записи",
+  filename VARCHAR(255) NOT NULL COMMENT "Путь к файлу",
+  problem_status_id INT UNSIGNED NOT NULL DEFAULT 1 COMMENT "Ссылка на текущий статус проблемы", 
+  responsible_person_id INT UNSIGNED NOT NULL COMMENT "Ссылка на пользователя, ответственного за решение проблемы", 
+  scheduled_at DATE DEFAULT (CURRENT_DATE + INTERVAL 3 DAY) COMMENT "Планируемая дата решения проблемы",
+  complited_at DATE DEFAULT NULL COMMENT "Дата решения проблемы",
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT "Время создания строки",  
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT "Время обновления строки"
+) COMMENT "Проблемы"; 
+
+-- создал таблицу лайков
+DROP TABLE IF EXISTS likes;
+CREATE TABLE likes (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  problem_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- создал таблицу дизлайков
+DROP TABLE IF EXISTS dislikes;
+CREATE TABLE dislikes (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  problem_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

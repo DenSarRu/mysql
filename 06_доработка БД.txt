@@ -1,0 +1,76 @@
+-- после анализа и работы с БД решил, что нужно добавить в неё две таблицы - лайков и дизлайков, т.к. для каждой проблемы возможно подтверждение проблемы (like) или отрицание её (dislike) другими пользователями
+-- Вероятно, их можно объединить в одну таблицу. Полагаю, что логика формирования записи в нее должна быть такой:
+-- problem_id | likes_user_id | dislike_user_id
+-- 1200       | 18            | NULL             - если кто-то подтвердил проблему
+-- 1200       | NULL          | 49               - если кто-то отрицает, что она есть
+-- Но на данном этапе я решил оставить две.
+
+-- Создал таблицу лайков
+DROP TABLE IF EXISTS likes;
+CREATE TABLE likes (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  problem_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- и дизлайков
+DROP TABLE IF EXISTS dislikes;
+CREATE TABLE dislikes (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  problem_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- заполнил их 
+INSERT INTO likes 
+  SELECT 
+    id, 
+    FLOOR(1 + (RAND() * 1230)), 
+    FLOOR(1 + (RAND() * 100)),
+    CURRENT_TIMESTAMP 
+  FROM problems;
+
+INSERT INTO dislikes 
+  SELECT 
+    id, 
+    FLOOR(1 + (RAND() * 1230)), 
+    FLOOR(1 + (RAND() * 100)),
+    CURRENT_TIMESTAMP 
+  FROM problems;
+ 
+-- Проверил
+SELECT * FROM likes LIMIT 10;
+SELECT * FROM dislikes LIMIT 10;
+
+-- Связал всё воедино
+DESC likes;
+
+ALTER TABLE likes
+  ADD CONSTRAINT likes_problem_id_fk
+    FOREIGN KEY (problem_id) REFERENCES problems(id)
+      ON DELETE NO ACTION
+      ON UPDATE CASCADE,
+  ADD CONSTRAINT likes_user_id_fk
+    FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE NO ACTION
+      ON UPDATE CASCADE;
+      
+DESC dislikes;
+
+ALTER TABLE dislikes
+  ADD CONSTRAINT dislikes_problem_id_fk
+    FOREIGN KEY (problem_id) REFERENCES problems(id)
+      ON DELETE NO ACTION
+      ON UPDATE CASCADE,
+  ADD CONSTRAINT dislikes_user_id_fk
+    FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE NO ACTION
+      ON UPDATE CASCADE;
+
+-- В действующую таблицу problems добавил столбец 
+ALTER TABLE problems ADD COLUMN complited_at DATE DEFAULT NULL COMMENT "Дата решения проблемы";
+
+
+-- По таблице логирования пока не придумал логику и данные, которые нужно добавлять...

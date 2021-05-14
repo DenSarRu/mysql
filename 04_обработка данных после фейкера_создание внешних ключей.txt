@@ -1,0 +1,289 @@
+-- БД создана. Теблицы фейкером заполнены. Начинаю приводить в порядок
+
+SHOW TABLES;
+
+-- Привожу в порядок таблицу problems_statuses. Их всего пять
+
+TRUNCATE problems_statuses;
+
+INSERT INTO
+  problems_statuses (name)
+VALUES
+  ('назначено'), 
+  ('в работе'),
+  ('план'),
+  ('готово'),
+  ('удалено');
+ 
+ SELECT * FROM problems_statuses;
+
+-- Привожу в порядок таблицу problems_types
+TRUNCATE problems_types;
+
+INSERT INTO
+  problems_types(name)
+VALUES
+  ('яма'),
+  ('брошенная машина'),
+  ('не убран снег'), 
+  ('наказ депутату'),
+  ('благоустройство'),
+  ('пожарная безопасность'),
+  ('освещение'),
+  ('аварийные деревья'),
+  ('мусор'),
+  ('проблема жкх'),
+  ('бродячие животные'),
+  ('земляные работы'),
+  ('другая проблема');
+
+SELECT * FROM problems_types;
+
+-- Привожу в порядок таблицу user_statuses
+TRUNCATE user_statuses;
+
+INSERT INTO
+  user_statuses(name)
+VALUES
+  ('пользователь'), 
+  ('администратор'),
+  ('исполнитель'),
+  ('наблюдающий');
+
+SELECT * FROM user_statuses;
+
+-- Привожу в порядок таблицу wind_direction
+TRUNCATE wind_direction;
+
+INSERT INTO
+  wind_direction(direction)
+VALUES
+  ('север'),
+  ('северо-восток'),
+  ('восток'), 
+  ('юго-восток'),
+  ('юг'),
+  ('юго-запад'),
+  ('запад'),
+  ('северо-запад');
+ 
+SELECT * FROM wind_direction;
+
+-- Поработаю с таблицей users
+SELECT * FROM users LIMIT 10;
+
+-- приведу в порядок даты
+UPDATE users SET updated_at = now() where updated_at < created_at;
+
+-- и внесу разнообразие в статусы пользователей
+UPDATE
+  users 
+SET 
+  user_status_id = FLOOR(1 + RAND()*4);
+
+-- и сразу создам связи
+DESC users;
+ 
+ALTER TABLE users 
+  ADD CONSTRAINT users_user_statuses_id_fk
+    FOREIGN KEY (user_status_id) REFERENCES user_statuses(id)
+      ON DELETE NO ACTION
+      ON UPDATE CASCADE;
+
+-- Поработаю с таблицей problems
+SELECT * FROM problems LIMIT 10;
+
+UPDATE problems SET updated_at = now() where updated_at < created_at;
+
+UPDATE problems SET scheduled_at = (current_date() + interval 1 month) WHERE scheduled_at < created_at;
+
+UPDATE problems SET scheduled_at = NULL WHERE problem_status_id in (4, 5);
+
+UPDATE
+  problems 
+SET
+  problem_type_id = FLOOR(1 + RAND()*13),
+  problem_status_id = FLOOR(1 + RAND()*5),
+  user_id = FLOOR(1 + RAND()*100),
+  responsible_person_id = FLOOR(1 + RAND()*100);
+
+UPDATE 
+  problems
+SET
+  filename = concat( 
+   'http://smartsarov.ru/problems/',
+   filename,
+   '.jpeg');
+
+UPDATE 
+  problems 
+SET
+  scheduled_at = NULL
+WHERE problem_status_id = 5;
+   
+-- и сразу создам связи
+DESC problems;
+ 
+ALTER TABLE problems
+  ADD CONSTRAINT problems_problem_type_id_fk
+    FOREIGN KEY (problem_type_id) REFERENCES problems_types(id)
+      ON DELETE NO ACTION
+      ON UPDATE CASCADE;
+
+ALTER TABLE problems
+  ADD CONSTRAINT problems_user_id_fk
+    FOREIGN KEY (user_id) REFERENCES users(id)
+      ON DELETE NO ACTION;
+
+ALTER TABLE problems
+  ADD CONSTRAINT problems_problem_status_id_fk
+    FOREIGN KEY (problem_status_id) REFERENCES problems_statuses(id)
+      ON DELETE NO ACTION
+      ON UPDATE NO ACTION;
+
+ALTER TABLE problems
+  ADD CONSTRAINT problems_responsible_person_id_fk
+    FOREIGN KEY (responsible_person_id) REFERENCES users(id)
+      ON DELETE NO ACTION;
+      
+-- Поработаю с таблицей earthworks
+SELECT * FROM earthworks LIMIT 10;
+
+UPDATE
+  earthworks 
+SET
+  start_date = (created_at + INTERVAL 1 WEEK),
+  end_date = (created_at + INTERVAL 2 MONTH)
+WHERE start_date < created_at;
+
+UPDATE
+  earthworks 
+SET 
+  organization_executor_id = FLOOR(1 + RAND() * 120);
+  
+ALTER TABLE earthworks
+  ADD CONSTRAINT earthworks_organization_executor_id_fk
+    FOREIGN KEY (organization_executor_id) REFERENCES organizations(id)
+      ON DELETE NO ACTION
+      ON UPDATE CASCADE;
+      
+ SELECT * FROM organizations;
+ 
+-- traffic_accident
+SELECT * FROM traffic_accident LIMIT 20;
+
+UPDATE traffic_accident SET updated_at = now() where updated_at < created_at;
+
+UPDATE 
+  traffic_accident 
+SET
+  filename = concat( 
+   'http://smartsarov.ru/traffic_accident/',
+   filename,
+   '.jpeg');
+
+-- weather_data
+SELECT * FROM weather_data;
+
+-- Мне не понравился разброс дат в столбце day_of_measurement и я решил, что нужно установить его по возрастанию.
+-- К сожалению я не придумал ничего лучше, чем создать временную таблицу
+
+CREATE TABLE weather_data_tmp (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT "Идентификатор строки", 
+  day_of_measurement DATE DEFAULT (CURRENT_DATE) COMMENT "Дата",
+  time_of_measurement TIME DEFAULT (CURRENT_TIME) COMMENT "Время",
+  air_temperature DECIMAL(3,1) NOT NULL COMMENT "температура воздуха", 
+  atmospheric_pressure INT UNSIGNED NOT NULL COMMENT "Атмосферное давление",
+  humidity INT UNSIGNED NOT NULL COMMENT "Влажность воздуха",
+  wind_speed DECIMAL(4,1) NOT NULL  COMMENT "Скорость ветра", 
+  wind_direction_id INT UNSIGNED NOT NULL COMMENT "Ссылка на направление ветра",
+  radiation INT UNSIGNED NOT NULL COMMENT "Уровень радиации",
+  water_level INT UNSIGNED NOT NULL COMMENT "Уровень воды",
+  light_level INT UNSIGNED NOT NULL COMMENT "Уровень освещенности"
+) COMMENT "Метеоданные";
+
+-- и наполнить её данными из исходной таблицы, подменяя дату 
+
+SET @start_date := curdate() - INTERVAL 100 DAY;
+SET @start_id := 1;
+
+INSERT INTO weather_data_tmp
+SELECT
+  @start_id := @start_id + 1,
+  @start_date := @start_date + INTERVAL 1 DAY, 
+  weather_data.time_of_measurement,
+  weather_data.air_temperature,
+  weather_data.atmospheric_pressure,
+  weather_data.humidity,
+  weather_data.wind_speed,
+  weather_data.wind_direction_id,
+  weather_data.radiation,
+  weather_data.water_level,
+  weather_data.light_level 
+FROM weather_data WHERE @start_date < current_date();
+
+SELECT * FROM weather_data_tmp;
+
+DROP TABLE IF EXISTS weather_data;
+
+ALTER TABLE weather_data_tmp RENAME TO weather_data;
+
+SHOW TABLES;
+
+SELECT * FROM weather_data;
+
+DESC weather_data;
+
+-- сделал данные похожими на правду
+UPDATE
+  weather_data
+SET
+  wind_direction_id = FLOOR(1 + RAND() * 8);
+
+UPDATE
+  weather_data
+SET
+  air_temperature = ROUND((0 + RAND() * 20), 1)
+WHERE day_of_measurement between '2021-04-01' AND '2021-05-12';
+
+UPDATE
+  weather_data
+SET
+  atmospheric_pressure = FLOOR(735 + RAND() * 25);
+ 
+UPDATE
+  weather_data
+SET
+  humidity = FLOOR(70 + RAND() * 25);
+
+ UPDATE
+  weather_data
+SET
+  wind_speed = ROUND((0 + RAND() * 25), 1);
+  
+-- Для данных о радиационном фоне нужно изменить тип с INT на DECIMAL
+ALTER TABLE weather_data MODIFY COLUMN radiation DECIMAL(3, 2);
+
+UPDATE
+  weather_data
+SET
+  radiation = round((0.09 + rand() * 0.09), 2);
+
+UPDATE
+  weather_data
+SET
+  water_level = FLOOR(270 + RAND() * 50);
+ 
+ALTER TABLE weather_data
+  ADD CONSTRAINT weather_data_wind_direction_id_fk
+    FOREIGN KEY (wind_direction_id) REFERENCES wind_direction(id)
+      ON DELETE NO ACTION
+      ON UPDATE CASCADE;
+
+
+
+-- По результатам анализа добавил в таблицу problem_statuses еще одно значение
+INSERT INTO
+  problems_statuses (name)
+VALUES
+  ('проверяется');
