@@ -1,0 +1,119 @@
+-- хранимые процедуры / триггеры;
+
+-- Создам процедуру проверки статуса какого либо пользователя
+
+DROP PROCEDURE IF EXISTS check_user_status;
+
+DELIMITER //
+
+CREATE PROCEDURE check_user_status(IN id INT)
+BEGIN
+	SELECT 
+    	us.name
+   	  FROM users u 
+   	    JOIN user_statuses us
+        ON u.user_status_id = us.id 
+      WHERE u.id = id;
+END//
+
+DELIMITER ;
+
+CALL check_user_status(25);
+
+
+-- Создам триггер, который будет выставлять scheduled_at = NULL при выставлении статусов 'готово' и 'удалено';
+
+DROP TRIGGER IF EXISTS set_scheduled_at; 
+
+DELIMITER //
+
+CREATE TRIGGER set_scheduled_at BEFORE UPDATE ON problems 
+FOR EACH ROW
+BEGIN
+  IF NEW.problem_status_id IN (4, 5)
+    THEN SET NEW.scheduled_at = NULL; 
+  end if;
+END //
+
+DELIMITER ;
+
+-- проверяю
+SELECT * FROM expired_problem;
+
+SELECT problem_status_id, scheduled_at FROM problems p WHERE id = 10;
+
+UPDATE
+  problems 
+SET
+  problem_status_id = 5
+WHERE problems.id = 10;
+
+SELECT problem_status_id, scheduled_at FROM problems p WHERE id = 9;
+
+UPDATE
+  problems 
+SET
+  problem_status_id = 4
+WHERE problems.id = 9;
+
+
+
+-- После внесения изменений в таблицу problems
+-- создам новый триггер который будет выставлять scheduled_at = NULL и comlited_at = CURRENT_DATE
+-- при выставлении статусов 'готово' и 'удалено';
+
+DROP TRIGGER IF EXISTS set_date; 
+
+DELIMITER //
+
+CREATE TRIGGER set_date BEFORE UPDATE ON problems 
+FOR EACH ROW
+BEGIN
+  IF NEW.problem_status_id IN (4, 5) THEN 
+    SET
+     NEW.scheduled_at = NULL,
+     NEW.complited_at = CURRENT_DATE; 
+  end if;
+END //
+
+DELIMITER ;
+
+-- проверяю
+SELECT * FROM expired_problem;
+
+SELECT problem_status_id, scheduled_at, complited_at FROM problems p WHERE id = 11;
+
+UPDATE
+  problems 
+SET
+  problem_status_id = 4
+WHERE problems.id = 11;
+
+SELECT problem_status_id, scheduled_at FROM problems p WHERE id = 9;
+
+UPDATE
+  problems 
+SET
+  problem_status_id = 4
+WHERE problems.id = 9;
+
+
+
+-- Зная, по собственному опыту, что проблема из статуса "Готово" может быть возвращена "В работу"
+-- сделаю триггер по выставлению complited_at значения NULL
+
+DELIMITER //
+
+CREATE TRIGGER change_completed_at BEFORE UPDATE ON problems 
+FOR EACH ROW
+BEGIN
+  IF NEW.problem_status_id IN (4, 5) THEN 
+    SET
+     NEW.complited_at = CURRENT_DATE; 
+  end if;
+END //
+
+DELIMITER ;
+
+
+-- Создам функцию...
